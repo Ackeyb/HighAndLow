@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, use } from "react";
+import { useRouter } from "next/navigation"; // useSearchParams は削除
 
 type Stage = "heaven" | "human" | "demon" | "extreme";
 type Card = `c_${string}` | `s_${string}` | `d_${string}` | `h_${string}` | "j";
@@ -13,34 +13,29 @@ const jokerCountByStage: Record<Stage, number> = {
   extreme: 6,
 };
 
-export default function PlayPage() {
+export default function PlayPage({ searchParams }: { searchParams: Promise<any> }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const params = use(searchParams) as Record<string, string>; // unknown を安全に unwrap
 
-  // ===== クエリ関連（useEffect内で初期化） =====
-  const [players, setPlayers] = useState<string[]>([]);
-  const [stage, setStage] = useState<Stage>("human");
-  const [startCups, setStartCups] = useState(0);
-  const [addPerRound, setAddPerRound] = useState(0);
+  const [players, setPlayers] = useState<string[]>(JSON.parse(decodeURIComponent(params.players)));
+  const [stage, setStage] = useState<Stage>(params.stage as Stage);
+  const [startCups, setStartCups] = useState(Number(params.start));
+  const [addPerRound, setAddPerRound] = useState(Number(params.add));
 
   useEffect(() => {
-    const playersParam = searchParams.get("players");
-    const stageParam = searchParams.get("stage");
-    const startParam = searchParams.get("start");
-    const addParam = searchParams.get("add");
-
-    if (playersParam) setPlayers(JSON.parse(decodeURIComponent(playersParam)));
+    if (params.players)
+      setPlayers(JSON.parse(decodeURIComponent(params.players)));
     if (
-      stageParam === "heaven" ||
-      stageParam === "human" ||
-      stageParam === "demon" ||
-      stageParam === "extreme"
+      params.stage === "heaven" ||
+      params.stage === "human" ||
+      params.stage === "demon" ||
+      params.stage === "extreme"
     ) {
-      setStage(stageParam);
+      setStage(params.stage);
     }
-    if (startParam) setStartCups(Number(startParam));
-    if (addParam) setAddPerRound(Number(addParam));
-  }, []);
+    if (params.start) setStartCups(Number(params.start));
+    if (params.add) setAddPerRound(Number(params.add));
+  }, [params]);
 
   // ===== ゲーム状態 =====
   const [round, setRound] = useState(1);
