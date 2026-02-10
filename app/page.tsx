@@ -48,7 +48,7 @@ export default function Home() {
   const openPlayerDialog = () => {
     setBackupPlayers(players);
 
-  const count = players.length > 0 ? players.length : 2;
+    const count = players.length > 0 ? players.length : 2;
     setPlayerCount(count);
 
     setPlayers((prev) => {
