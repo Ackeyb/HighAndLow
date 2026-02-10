@@ -142,6 +142,7 @@ export default function PlayPage() {
 
   // ===== 次のプレイヤーに進めるだけ =====
   const nextPlayer = () => {
+    if (players.length === 0) return; // 空配列なら何もしない
     setCurrentPlayerIndex((prevIndex) => (prevIndex + 1) % players.length);
   };
 
