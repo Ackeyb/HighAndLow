@@ -15,8 +15,34 @@ const jokerCountByStage: Record<Stage, number> = {
 
 export default function PlayPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
+  // ===== クエリ関連（useEffect内で初期化） =====
+  const [players, setPlayers] = useState<string[]>([]);
+  const [stage, setStage] = useState<Stage>("human");
+  const [startCups, setStartCups] = useState(0);
+  const [addPerRound, setAddPerRound] = useState(0);
+
+  useEffect(() => {
+    const searchParams = useSearchParams();
+    const playersParam = searchParams.get("players");
+    const stageParam = searchParams.get("stage");
+    const startParam = searchParams.get("start");
+    const addParam = searchParams.get("add");
+
+    if (playersParam) setPlayers(JSON.parse(decodeURIComponent(playersParam)));
+    if (
+      stageParam === "heaven" ||
+      stageParam === "human" ||
+      stageParam === "demon" ||
+      stageParam === "extreme"
+    ) {
+      setStage(stageParam);
+    }
+    if (startParam) setStartCups(Number(startParam));
+    if (addParam) setAddPerRound(Number(addParam));
+  }, []);
+
+  // ===== ゲーム状態 =====
   const [round, setRound] = useState(1);
   const [canGuess, setCanGuess] = useState(true);
   const [cups, setCups] = useState(0);
@@ -25,27 +51,9 @@ export default function PlayPage() {
   const [cardIndex, setCardIndex] = useState(0);
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [showJoker, setShowJoker] = useState(false);
-
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
 
-  // ===== クエリ =====
-  const playersParam = searchParams.get("players");
-  const stageParam = searchParams.get("stage");
-  const startParam = searchParams.get("start");
-  const addParam = searchParams.get("add");
-  const startCups = startParam ? Number(startParam) : 0;
-  const addPerRound = addParam ? Number(addParam) : 0;
-  const players: string[] = playersParam
-    ? JSON.parse(decodeURIComponent(playersParam))
-    : [];
-  const stage: Stage =
-    stageParam === "heaven" ||
-    stageParam === "human" ||
-    stageParam === "demon" ||
-    stageParam === "extreme"
-      ? stageParam
-      : "human";
-
+  // ===== ステージ名マップ =====
   const stageNameMap: Record<Stage, string> = {
     heaven: "天界",
     human: "人間界",
