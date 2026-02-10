@@ -1,26 +1,58 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui, sans-serif;
+  background-color: #f9fafb;
+  color: #111827;
+  line-height: 1.5;
+}
+
+/* フォーム用のクラススタイル */
+.player-input {
+  width: 12em;
+  display: block;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.config-label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
+}
+
+.config-input {
+  width: 64px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #f3a1b3;
+  text-align: center;
+  font-weight: bold;
+  color: #6b3a44;
+  background-color: #fff;
+}
+
+.start-button {
+  width: 100%;
+  max-width: 360px;
+  padding: 16px 20px;
+  border-radius: 999px;
+
+  font-size: 1.05rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+
+  border: none;
+  cursor: pointer;
+  
+  background: linear-gradient(180deg, #f3a1b3, #e96b8a);
+  color: #fff;
 }
