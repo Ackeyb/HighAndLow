@@ -15,6 +15,7 @@ const jokerCountByStage: Record<Stage, number> = {
 
 export default function PlayPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // ===== クエリ関連（useEffect内で初期化） =====
   const [players, setPlayers] = useState<string[]>([]);
@@ -23,7 +24,6 @@ export default function PlayPage() {
   const [addPerRound, setAddPerRound] = useState(0);
 
   useEffect(() => {
-    const searchParams = useSearchParams();
     const playersParam = searchParams.get("players");
     const stageParam = searchParams.get("stage");
     const startParam = searchParams.get("start");
@@ -61,7 +61,9 @@ export default function PlayPage() {
     extreme: "極界",
   };
   const stageName = stageNameMap[stage];
-  const currentPlayer = players[currentPlayerIndex] ?? "？？？";
+  const currentPlayer = players.length > 0
+    ? players[currentPlayerIndex % players.length]
+    : "？？？";
 
   // ===== ユーティリティ =====
   const getCardValue = (card: Card): number | "joker" => {
