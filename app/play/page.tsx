@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useRef, useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation"; // useSearchParams は削除
 
 type Stage = "heaven" | "human" | "demon" | "extreme";
@@ -22,6 +22,11 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
   const [startCups, setStartCups] = useState(Number(params.start));
   const [addPerRound, setAddPerRound] = useState(Number(params.add));
 
+  const soundDraw = useRef<HTMLAudioElement | null>(null);
+  const soundOK = useRef<HTMLAudioElement | null>(null);
+  const soundNG = useRef<HTMLAudioElement | null>(null);
+  const soundJoker = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     if (params.players)
       setPlayers(JSON.parse(decodeURIComponent(params.players)));
@@ -35,6 +40,13 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
     }
     if (params.start) setStartCups(Number(params.start));
     if (params.add) setAddPerRound(Number(params.add));
+
+    if (typeof window !== "undefined") {
+      soundDraw.current = new Audio("/audios/draw.mp3");
+      soundOK.current = new Audio("/audios/ok.mp3");
+      soundNG.current = new Audio("/audios/ng.mp3");
+      soundJoker.current = new Audio("/audios/joker.mp3");
+    }
   }, [params]);
 
   // ===== ゲーム状態 =====
@@ -135,6 +147,21 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
     setCardIndex(0);
   }, [stage]);
 
+  // ===== Deck残り枚数監視 =====
+  useEffect(() => {
+    if (deck.length === 0) return;
+
+    const remaining = deck.length - (cardIndex + 1);
+
+    if (remaining <= 10) {
+      const newDeck = createDeck(stage);
+
+      setDeck(newDeck);
+      setCardIndex(0);
+      setCurrentCard(newDeck[0]);
+    }
+  }, [cardIndex, deck.length, stage]);
+
   // ===== 次のプレイヤーに進めるだけ =====
   const nextPlayer = () => {
     if (players.length === 0) return; // 空配列なら何もしない
@@ -142,8 +169,22 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
   };
 
   // ===== onGuess =====
-  const onGuess = (guess: "high" | "low") => {
+  const onGuess = async(guess: "high" | "low") => {
     if (!canGuess || !currentCard) return;
+
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    const audioDraw = soundDraw.current;
+    if (audioDraw){
+      audioDraw.currentTime = 0;
+
+      await audioDraw.play();  // 再生開始を待つ
+      await wait(500);        // 1秒待つ
+
+      audioDraw.pause();
+      audioDraw.currentTime = 0;
+    }
 
     const currentValueRaw = getCardValue(currentCard);
     const currentValue: number = currentValueRaw === "joker" ? 0 : currentValueRaw;
@@ -175,6 +216,7 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
 
     // ---- ターン終了処理 ----
     if (isJoker) {
+      soundJoker.current?.play();
       setShowJoker(true);
       setCups((c) => c * 2);
       setCanGuess(false);
@@ -184,6 +226,16 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
         setCanGuess(true);
       }, 3000);
     } else if (isHit) {
+      const audioOK = soundOK.current;
+      if (audioOK){
+        audioOK.currentTime = 0;
+
+        await audioOK.play();  // 再生開始を待つ
+        await wait(1300);        // 1秒待つ
+
+        audioOK.pause();
+        audioOK.currentTime = 0;
+      }
       // プレイヤーが一周したかチェック
       const isLastPlayer = currentPlayerIndex === players.length - 1;
       if (isLastPlayer) {
@@ -194,6 +246,7 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
       nextPlayer(); // Index だけ更新
       setCanGuess(true);
     } else {
+      soundNG.current?.play();
       setCanGuess(false);
     }
   };
