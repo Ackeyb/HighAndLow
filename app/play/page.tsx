@@ -16,9 +16,13 @@ const jokerCountByStage: Record<Stage, number> = {
   extreme: 6,
 };
 
+/* ===========================
+   👇 ここから中身を全部移す
+=========================== */
 function PlayInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const guessLock = useRef(false);
 
   const params = {
     players: searchParams.get("players"),
@@ -218,7 +222,10 @@ function PlayInner() {
 
   // ===== onGuess =====
   const onGuess = async (guess: "high" | "low") => {
-    if (!canGuess || !currentCard) return;
+    if (guessLock.current || !currentCard) return;
+
+    guessLock.current = true;   // 即ロック
+    setCanGuess(false);
 
     const wait = (ms: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -285,8 +292,8 @@ function PlayInner() {
         setShowJoker(false);
         nextPlayer();
         setCanGuess(true);
+        guessLock.current = false;   // ←追加
       }, 3000);
-
     } else if (isHit) {
       const audioOK = soundOK.current;
       if (audioOK) {
@@ -307,10 +314,12 @@ function PlayInner() {
 
       nextPlayer();
       setCanGuess(true);
+      guessLock.current = false;
 
     } else {
       soundNG.current?.play();
       setCanGuess(false);
+      guessLock.current = false;
     }
   };
 
