@@ -498,7 +498,7 @@ function PlayInner() {
           players: JSON.stringify(players),
         }).toString();
         setOpenBackDialog(false);
-        router.push(`/?${query}`);
+        window.location.href = `/?${query}`;
       }}
       onCancel={() => setOpenBackDialog(false)}
     />
