@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import MessageDialog from "@/components/ErrorDialog";
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function Home() {
+function HomeInner() {
 
   type ConfigInput = {
     startCups: string;
@@ -578,5 +579,13 @@ export default function Home() {
       />
 
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeInner />
+    </Suspense>
   );
 }

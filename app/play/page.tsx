@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation"; 
+import { useRef, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import MessageDialog from "@/components/MessageDialog";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { Suspense } from "react";
 
 type Stage = "heaven" | "human" | "demon" | "extreme";
 type Card = `c_${string}` | `s_${string}` | `d_${string}` | `h_${string}` | "j";
@@ -15,16 +16,34 @@ const jokerCountByStage: Record<Stage, number> = {
   extreme: 6,
 };
 
-export default function PlayPage({ searchParams }: { searchParams: Promise<any> }) {
+function PlayInner() {
   const router = useRouter();
-  const params = use(searchParams) as Record<string, string>; // unknown を安全に unwrap
+  const searchParams = useSearchParams();
+
+  const params = {
+    players: searchParams.get("players"),
+    stage: searchParams.get("stage"),
+    start: searchParams.get("start"),
+    add: searchParams.get("add"),
+  };
+
   const [isFlipping, setIsFlipping] = useState(false);
   const [displayCard, setDisplayCard] = useState<string | null>(null);
-  
-  const [players, setPlayers] = useState<string[]>(JSON.parse(decodeURIComponent(params.players)));
-  const [stage, setStage] = useState<Stage>(params.stage as Stage);
-  const [startCups, setStartCups] = useState(Number(params.start));
-  const [addPerRound, setAddPerRound] = useState(Number(params.add));
+
+  const [players, setPlayers] = useState<string[]>(() => {
+    if (!params.players) return [];
+    try {
+      return JSON.parse(decodeURIComponent(params.players));
+    } catch {
+      return [];
+    }
+  });
+
+  const [stage, setStage] = useState<Stage>(
+    (params.stage as Stage) ?? "human"
+  );
+  const [startCups, setStartCups] = useState(Number(params.start) || 0);
+  const [addPerRound, setAddPerRound] = useState(Number(params.add) || 0);
 
   const soundDraw = useRef<HTMLAudioElement | null>(null);
   const soundOK = useRef<HTMLAudioElement | null>(null);
@@ -35,6 +54,7 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
   useEffect(() => {
     if (params.players)
       setPlayers(JSON.parse(decodeURIComponent(params.players)));
+
     if (
       params.stage === "heaven" ||
       params.stage === "human" ||
@@ -43,6 +63,7 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
     ) {
       setStage(params.stage);
     }
+
     if (params.start) setStartCups(Number(params.start));
     if (params.add) setAddPerRound(Number(params.add));
 
@@ -474,5 +495,13 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
     />
 
     </div>
+  );
+}
+
+export default function PlayPage() {
+  return (
+    <Suspense fallback={null}>
+      <PlayInner />
+    </Suspense>
   );
 }
