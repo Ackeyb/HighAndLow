@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import MessageDialog from "@/components/ErrorDialog";
 import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function Home() {
 
@@ -23,7 +24,22 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   type Stage = "heaven" | "human" | "demon" | "extreme";
   const [stage, setStage] = useState<Stage>("human");
+  const searchParams = useSearchParams();
 
+  useEffect(() => {
+    const playersParam = searchParams.get("players");
+    if (!playersParam) return;
+
+    try {
+      const parsed = JSON.parse(playersParam) as string[];
+
+      setPlayers(parsed);
+      setPlayerCount(parsed.length);
+    } catch {
+      // 壊れてたら無視
+    }
+  }, [searchParams]);
+  
   useEffect(() => {
     const saved = localStorage.getItem("resumePlayers");
     if (!saved) return;

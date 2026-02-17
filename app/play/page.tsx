@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation"; // useSearchParams は削除
+import { useRouter } from "next/navigation"; 
+import MessageDialog from "@/components/MessageDialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Stage = "heaven" | "human" | "demon" | "extreme";
 type Card = `c_${string}` | `s_${string}` | `d_${string}` | `h_${string}` | "j";
@@ -16,7 +18,9 @@ const jokerCountByStage: Record<Stage, number> = {
 export default function PlayPage({ searchParams }: { searchParams: Promise<any> }) {
   const router = useRouter();
   const params = use(searchParams) as Record<string, string>; // unknown を安全に unwrap
-
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [displayCard, setDisplayCard] = useState<string | null>(null);
+  
   const [players, setPlayers] = useState<string[]>(JSON.parse(decodeURIComponent(params.players)));
   const [stage, setStage] = useState<Stage>(params.stage as Stage);
   const [startCups, setStartCups] = useState(Number(params.start));
@@ -26,6 +30,7 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
   const soundOK = useRef<HTMLAudioElement | null>(null);
   const soundNG = useRef<HTMLAudioElement | null>(null);
   const soundJoker = useRef<HTMLAudioElement | null>(null);
+  const [openBackDialog, setOpenBackDialog] = useState(false);
 
   useEffect(() => {
     if (params.players)
@@ -48,6 +53,28 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
       soundJoker.current = new Audio("/audios/joker.mp3");
     }
   }, [params]);
+
+  const preloadImages = () => {
+    const suits = ["c", "s", "d", "h"];
+    const numbers = Array.from({ length: 13 }, (_, i) =>
+      String(i + 1).padStart(2, "0")
+    );
+
+    const allCards = suits.flatMap((s) =>
+      numbers.map((n) => `${s}_${n}`)
+    );
+
+    allCards.push("j", "t"); // joker と 山札
+
+    allCards.forEach((card) => {
+      const img = new Image();
+      img.src = `/images/Trump/${card}.png`;
+    });
+  };
+
+  useEffect(() => {
+    preloadImages();
+  }, []);
 
   // ===== ゲーム状態 =====
   const [round, setRound] = useState(1);
@@ -169,25 +196,18 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
   };
 
   // ===== onGuess =====
-  const onGuess = async(guess: "high" | "low") => {
+  const onGuess = async (guess: "high" | "low") => {
     if (!canGuess || !currentCard) return;
 
     const wait = (ms: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-    const audioDraw = soundDraw.current;
-    if (audioDraw){
-      audioDraw.currentTime = 0;
+    setCanGuess(false);
 
-      await audioDraw.play();  // 再生開始を待つ
-      await wait(500);        // 1秒待つ
-
-      audioDraw.pause();
-      audioDraw.currentTime = 0;
-    }
-
+    // ===== ① まず次カードを確定させる =====
     const currentValueRaw = getCardValue(currentCard);
-    const currentValue: number = currentValueRaw === "joker" ? 0 : currentValueRaw;
+    const currentValue =
+      currentValueRaw === "joker" ? 0 : currentValueRaw;
 
     const { card: nextCard, bestIndex } = getJudgementCard(
       guess,
@@ -197,54 +217,76 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
 
     const nextValueRaw = getCardValue(nextCard);
     const isJoker = nextValueRaw === "joker";
-    const nextValue: number = isJoker ? currentValue : (nextValueRaw as number);
+    const nextValue = isJoker ? currentValue : (nextValueRaw as number);
 
     const isTie = nextValue === currentValue;
     const isHit =
-      isJoker || isTie || (guess === "high" ? nextValue > currentValue : nextValue < currentValue);
+      isJoker ||
+      isTie ||
+      (guess === "high"
+        ? nextValue > currentValue
+        : nextValue < currentValue);
 
-    // ---- swap deck ----
+    // ===== ② ドロー演出開始 =====
+    soundDraw.current?.play();
+
+    // 裏面を山札位置に出す
+    setDisplayCard("back");
+
+    await wait(250);
+
+    // 表に切り替え（回転の途中）
+    setDisplayCard(nextCard);
+
+    await wait(250);
+
+    // 演出カード消す
+    setDisplayCard(null);
+
+    // ===== ③ 実際のデータ更新 =====
     if (bestIndex !== cardIndex + 1) {
       const newDeck = [...deck];
-      [newDeck[cardIndex + 1], newDeck[bestIndex]] = [newDeck[bestIndex], newDeck[cardIndex + 1]];
+      [newDeck[cardIndex + 1], newDeck[bestIndex]] =
+        [newDeck[bestIndex], newDeck[cardIndex + 1]];
       setDeck(newDeck);
     }
 
-    // ---- カード更新 ----
-    setCardIndex(cardIndex + 1);
+    setCardIndex((prev) => prev + 1);
     if (!isJoker) setCurrentCard(nextCard);
 
-    // ---- ターン終了処理 ----
+    // ===== ④ ターン処理 =====
     if (isJoker) {
       soundJoker.current?.play();
       setShowJoker(true);
       setCups((c) => c * 2);
-      setCanGuess(false);
+
       setTimeout(() => {
         setShowJoker(false);
-        nextPlayer(); // Index だけ更新
+        nextPlayer();
         setCanGuess(true);
       }, 3000);
+
     } else if (isHit) {
       const audioOK = soundOK.current;
-      if (audioOK){
+      if (audioOK) {
         audioOK.currentTime = 0;
-
-        await audioOK.play();  // 再生開始を待つ
-        await wait(1300);        // 1秒待つ
-
+        await audioOK.play();
+        await wait(1000);
         audioOK.pause();
         audioOK.currentTime = 0;
       }
-      // プレイヤーが一周したかチェック
-      const isLastPlayer = currentPlayerIndex === players.length - 1;
+
+      const isLastPlayer =
+        currentPlayerIndex === players.length - 1;
+
       if (isLastPlayer) {
         setRound((r) => r + 1);
         setCups((c) => c + addPerRound);
       }
 
-      nextPlayer(); // Index だけ更新
+      nextPlayer();
       setCanGuess(true);
+
     } else {
       soundNG.current?.play();
       setCanGuess(false);
@@ -273,14 +315,87 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
          {currentPlayer} のターン
       </div>
 
-      <div style={{ height: "240px", borderRadius: "12px", backgroundColor: "#fff", border: "2px dashed #f3a1b3", display: "flex", alignItems: "center", justifyContent: "center", gap: "24px", marginBottom: "20px" }}>
-        <img src="/images/Trump/t.png" alt="山札" style={{ width: "120px", height: "180px", objectFit: "contain", opacity: 0.9 }} />
-        {currentCard ? (
-          <img src={`/images/Trump/${currentCard}.png`} alt={currentCard} style={{ width: "120px", height: "180px", objectFit: "contain" }} />
-        ) : (
-          <div style={{ width: "120px", height: "180px", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontWeight: "bold" }}>
-            🂠 読み込み中
-          </div>
+      <div
+        style={{
+          perspective: "1000px",
+          position: "relative",
+          height: "240px",
+          borderRadius: "12px",
+          backgroundColor: "#fff",
+          border: "2px dashed #f3a1b3",
+          marginBottom: "20px",
+        }}
+      >
+        {/* 山札（左固定） */}
+        <img
+          src="/images/Trump/t.png"
+          alt="山札"
+          style={{
+            position: "absolute",
+            left: "60px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: "120px",
+            height: "180px",
+            objectFit: "contain",
+            opacity: 0.9,
+          }}
+        />
+
+        {/* めくられるカード */}
+        {displayCard && (
+          <motion.img
+            key={displayCard}
+            src={
+              displayCard === "back"
+                ? "/images/Trump/t.png"
+                : `/images/Trump/${displayCard}.png`
+            }
+            initial={{
+              position: "absolute",
+              left: "60px",
+              top: "50%",
+              translateY: "-50%",
+              rotateY: 180,
+              scale: 1,
+              y: 0,
+            }}
+            animate={{
+              left: "220px",
+              rotateY: 0,
+              scale: 1.05,
+              y: -10,
+            }}
+            transition={{
+              duration: 0.45,
+              ease: [0.22, 1, 0.36, 1], // 超重要
+            }}
+            style={{
+              width: "120px",
+              height: "180px",
+              objectFit: "contain",
+              backfaceVisibility: "hidden",
+              boxShadow: "0 15px 30px rgba(0,0,0,0.2)",
+              zIndex: 20,
+            }}
+          />
+        )}
+
+        {/* 着地後の現在カード（右固定） */}
+        {currentCard && (
+          <img
+            src={`/images/Trump/${currentCard}.png`}
+            alt={currentCard}
+            style={{
+              position: "absolute",
+              left: "220px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: "120px",
+              height: "180px",
+              objectFit: "contain",
+            }}
+          />
         )}
       </div>
 
@@ -323,7 +438,18 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        <button onClick={() => router.push("/")} style={{ padding: "10px", borderRadius: "999px", border: "1px solid #ccc", backgroundColor: "#fff", cursor: "pointer" }}>⚙️ 設定ページに戻る</button>
+        <button
+          onClick={() => setOpenBackDialog(true)}
+          style={{
+            padding: "10px",
+            borderRadius: "999px",
+            border: "1px solid #ccc",
+            backgroundColor: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          ⚙️ 設定ページに戻る
+        </button>
         <button onClick={() => window.location.reload()} style={{ padding: "12px", borderRadius: "999px", border: "none", backgroundColor: "#e96b8a", color: "#fff", fontWeight: "bold", cursor: "pointer" }}>🔁 もう一回遊べるドン！</button>
       </div>
 
@@ -332,6 +458,20 @@ export default function PlayPage({ searchParams }: { searchParams: Promise<any> 
           <img src="/images/Trump/j.png" style={{ width: "60vw", maxWidth: "400px" }} />
         </div>
       )}
+
+    <MessageDialog
+      open={openBackDialog}
+      title="一応確認するわ"
+      message="逃げるの？"
+      onConfirm={() => {
+        const query = new URLSearchParams({
+          players: JSON.stringify(players),
+        }).toString();
+        setOpenBackDialog(false);
+        router.push(`/?${query}`);
+      }}
+      onCancel={() => setOpenBackDialog(false)}
+    />
 
     </div>
   );
