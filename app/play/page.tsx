@@ -15,10 +15,6 @@ const jokerCountByStage: Record<Stage, number> = {
   demon: 4,
   extreme: 6,
 };
-
-/* ===========================
-   👇 ここから中身を全部移す
-=========================== */
 function PlayInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,28 +52,11 @@ function PlayInner() {
   const [openBackDialog, setOpenBackDialog] = useState(false);
 
   useEffect(() => {
-    if (params.players)
-      setPlayers(JSON.parse(decodeURIComponent(params.players)));
-
-    if (
-      params.stage === "heaven" ||
-      params.stage === "human" ||
-      params.stage === "demon" ||
-      params.stage === "extreme"
-    ) {
-      setStage(params.stage);
-    }
-
-    if (params.start) setStartCups(Number(params.start));
-    if (params.add) setAddPerRound(Number(params.add));
-
-    if (typeof window !== "undefined") {
-      soundDraw.current = new Audio("/audios/draw.mp3");
-      soundOK.current = new Audio("/audios/ok.mp3");
-      soundNG.current = new Audio("/audios/ng.mp3");
-      soundJoker.current = new Audio("/audios/joker.mp3");
-    }
-  }, [params]);
+    soundDraw.current = new Audio("/audios/draw.mp3");
+    soundOK.current = new Audio("/audios/ok.mp3");
+    soundNG.current = new Audio("/audios/ng.mp3");
+    soundJoker.current = new Audio("/audios/joker.mp3");
+  }, []);
 
   const preloadImages = () => {
     const suits = ["c", "s", "d", "h"];
@@ -220,6 +199,18 @@ function PlayInner() {
     setCurrentPlayerIndex((prevIndex) => (prevIndex + 1) % players.length);
   };
 
+  const playSafe = (audio?: HTMLAudioElement | null) => {
+    if (!audio) return;
+
+    try {
+      audio.currentTime = 0;
+      const p = audio.play();
+      if (p !== undefined) {
+        p.catch(() => {});
+      }
+    } catch {}
+  };
+
   // ===== onGuess =====
   const onGuess = async (guess: "high" | "low") => {
     if (guessLock.current || !currentCard) return;
@@ -256,7 +247,7 @@ function PlayInner() {
         : nextValue < currentValue);
 
     // ===== ② ドロー演出開始 =====
-    soundDraw.current?.play();
+    playSafe(soundDraw.current);
 
     // 裏面を山札位置に出す
     setDisplayCard("back");
@@ -284,7 +275,7 @@ function PlayInner() {
 
     // ===== ④ ターン処理 =====
     if (isJoker) {
-      soundJoker.current?.play();
+      playSafe(soundJoker.current);
       setShowJoker(true);
       setCups((c) => c * 2);
 
@@ -295,14 +286,8 @@ function PlayInner() {
         guessLock.current = false;   // ←追加
       }, 3000);
     } else if (isHit) {
-      const audioOK = soundOK.current;
-      if (audioOK) {
-        audioOK.currentTime = 0;
-        await audioOK.play();
-        await wait(1000);
-        audioOK.pause();
-        audioOK.currentTime = 0;
-      }
+      playSafe(soundOK.current);
+      await wait(1000);
 
       const isLastPlayer =
         currentPlayerIndex === players.length - 1;
@@ -317,7 +302,7 @@ function PlayInner() {
       guessLock.current = false;
 
     } else {
-      soundNG.current?.play();
+      playSafe(soundNG.current);
       setCanGuess(false);
       guessLock.current = false;
     }
