@@ -51,6 +51,7 @@ function PlayInner() {
   const soundJoker = useRef<HTMLAudioElement | null>(null);
   const [openBackDialog, setOpenBackDialog] = useState(false);
   const [showExplosion, setShowExplosion] = useState(false);
+  const [loser, setLoser] = useState<string | null>(null);
 
   useEffect(() => {
     const draw = new Audio("/audios/draw.mp3");
@@ -316,6 +317,7 @@ function PlayInner() {
 
     } else {
       playSafe(soundNG.current);
+      setLoser(currentPlayer);
       setShowExplosion(true);
 
       setTimeout(() => {
@@ -325,7 +327,7 @@ function PlayInner() {
   };
 
   // ===== レンダリング =====
-  const caps = Math.floor(cups / 5);
+  const caps = (cups / 5).toFixed(1);
 
   return (
     <div style={{ padding: "24px", maxWidth: "480px", margin: "0 auto", backgroundColor: "#fde7ec", borderRadius: "16px", textAlign: "center" }}>
@@ -342,8 +344,20 @@ function PlayInner() {
         {stageName} ステージ ： {addPerRound} 杯増し
       </div>
 
-      <div style={{ marginBottom: "20px", padding: "8px", borderRadius: "999px", backgroundColor: "#fff", boxShadow: "0 2px 6px rgba(233,107,138,0.2)", fontWeight: "bold", color: "#6b3a44" }}>
-         {currentPlayer} のターン
+      <div
+        style={{
+          marginBottom: "20px",
+          padding: "8px",
+          borderRadius: "999px",
+          backgroundColor: "#fff",
+          boxShadow: "0 2px 6px rgba(233,107,138,0.2)",
+          fontWeight: "bold",
+          color: loser ? "#fa0238" : "#6b3a44",
+        }}
+      >
+        {loser
+          ? `${loser} の負け`
+          : `${currentPlayer} のターン`}
       </div>
 
       <div
