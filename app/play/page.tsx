@@ -53,10 +53,20 @@ function PlayInner() {
   const [showExplosion, setShowExplosion] = useState(false);
 
   useEffect(() => {
-    soundDraw.current = new Audio("/audios/draw.mp3");
-    soundOK.current = new Audio("/audios/ok.mp3");
-    soundNG.current = new Audio("/audios/ng.mp3");
-    soundJoker.current = new Audio("/audios/joker.mp3");
+    const draw = new Audio("/audios/draw.mp3");
+    const ok = new Audio("/audios/ok.mp3");
+    const ng = new Audio("/audios/ng.mp3");
+    const joker = new Audio("/audios/joker.mp3");
+
+    [draw, ok, ng, joker].forEach((audio) => {
+      audio.preload = "auto";
+      audio.load();
+    });
+
+    soundDraw.current = draw;
+    soundOK.current = ok;
+    soundNG.current = ng;
+    soundJoker.current = joker;
   }, []);
 
   const preloadImages = () => {
@@ -75,6 +85,8 @@ function PlayInner() {
       const img = new Image();
       img.src = `/images/Trump/${card}.png`;
     });
+    const explosion = new Image();
+    explosion.src = "/images/explosion.png";
   };
 
   useEffect(() => {
