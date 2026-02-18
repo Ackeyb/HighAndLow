@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import MessageDialog from "@/components/MessageDialog";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Suspense } from "react";
 
 type Stage = "heaven" | "human" | "demon" | "extreme";
@@ -50,6 +50,7 @@ function PlayInner() {
   const soundNG = useRef<HTMLAudioElement | null>(null);
   const soundJoker = useRef<HTMLAudioElement | null>(null);
   const [openBackDialog, setOpenBackDialog] = useState(false);
+  const [showExplosion, setShowExplosion] = useState(false);
 
   useEffect(() => {
     soundDraw.current = new Audio("/audios/draw.mp3");
@@ -303,8 +304,11 @@ function PlayInner() {
 
     } else {
       playSafe(soundNG.current);
-      setCanGuess(false);
-      guessLock.current = false;
+      setShowExplosion(true);
+
+      setTimeout(() => {
+        setShowExplosion(false);
+      }, 2000);
     }
   };
 
@@ -467,6 +471,41 @@ function PlayInner() {
         </button>
         <button onClick={() => window.location.reload()} style={{ padding: "12px", borderRadius: "999px", border: "none", backgroundColor: "#e96b8a", color: "#fff", fontWeight: "bold", cursor: "pointer" }}>🔁 もう一回遊べるドン！</button>
       </div>
+
+      <AnimatePresence>
+        {showExplosion && (
+          <motion.div
+            key="explosion-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              background: "rgba(0,0,0,0.4)",
+              position: "fixed",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+              zIndex: 5000,
+            }}
+          >
+            <motion.img
+              src="/images/explosion.png"
+              alt=""
+              initial={{ scale: 0.2, opacity: 1 }}
+              animate={{ scale: 2.5, opacity: 1 }}
+              exit={{ scale: 3.2, opacity: 0 }}
+              transition={{ duration: 2 }}
+              style={{
+                width: "80vw",
+                maxWidth: "800px",
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {showJoker && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, animation: "pulse 1.5s infinite" }}>
