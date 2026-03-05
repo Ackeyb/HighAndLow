@@ -369,6 +369,10 @@ function PlayInner() {
           backgroundColor: "#fff",
           border: "2px dashed #f3a1b3",
           marginBottom: "20px",
+          display: "flex", 
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "40px",
         }}
       >
         {/* 山札（左固定） */}
@@ -376,14 +380,9 @@ function PlayInner() {
           src="/images/Trump/t.png"
           alt="山札"
           style={{
-            position: "absolute",
-            left: "60px",
-            top: "50%",
-            transform: "translateY(-50%)",
             width: "120px",
             height: "180px",
             objectFit: "contain",
-            opacity: 0.9,
           }}
         />
 
@@ -396,31 +395,14 @@ function PlayInner() {
                 ? "/images/Trump/t.png"
                 : `/images/Trump/${displayCard}.png`
             }
-            initial={{
-              position: "absolute",
-              left: "60px",
-              top: "50%",
-              translateY: "-50%",
-              rotateY: 180,
-              scale: 1,
-              y: 0,
-            }}
-            animate={{
-              left: "220px",
-              rotateY: 0,
-              scale: 1.05,
-              y: -10,
-            }}
-            transition={{
-              duration: 0.45,
-              ease: [0.22, 1, 0.36, 1], // 超重要
-            }}
+            initial={{ x: -120, rotateY: 180 }}
+            animate={{ x: 120, rotateY: 0 }}
+            transition={{ duration: 0.45 }}
             style={{
+              position: "absolute",
               width: "120px",
               height: "180px",
               objectFit: "contain",
-              backfaceVisibility: "hidden",
-              boxShadow: "0 15px 30px rgba(0,0,0,0.2)",
               zIndex: 20,
             }}
           />
@@ -430,12 +412,7 @@ function PlayInner() {
         {currentCard && (
           <img
             src={`/images/Trump/${currentCard}.png`}
-            alt={currentCard}
             style={{
-              position: "absolute",
-              left: "220px",
-              top: "50%",
-              transform: "translateY(-50%)",
               width: "120px",
               height: "180px",
               objectFit: "contain",
